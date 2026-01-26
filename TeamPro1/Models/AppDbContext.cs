@@ -8,10 +8,15 @@ namespace TeamPro1.Models
         {
         }
 
+        // Student & Authentication
         public DbSet<Student> Students { get; set; }
+        public DbSet<Faculty> Faculties { get; set; }
+
+        // Team Formation
         public DbSet<Team> Teams { get; set; }
         public DbSet<TeamRequest> TeamRequests { get; set; }
-        public DbSet<Faculty> Faculties { get; set; }
+
+        // Project Progress Tracking
         public DbSet<ProjectProgress> ProjectProgresses { get; set; }
         public DbSet<TeamMeeting> TeamMeetings { get; set; }
 
@@ -19,31 +24,31 @@ namespace TeamPro1.Models
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configure Team relationships with NoAction to avoid cascade cycles
+            // Configure Team relationships
             modelBuilder.Entity<Team>()
                 .HasOne(t => t.Student1)
                 .WithMany()
                 .HasForeignKey(t => t.Student1Id)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Team>()
                 .HasOne(t => t.Student2)
                 .WithMany()
                 .HasForeignKey(t => t.Student2Id)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
-            // Configure TeamRequest relationships with NoAction to avoid cascade cycles
+            // Configure TeamRequest relationships
             modelBuilder.Entity<TeamRequest>()
                 .HasOne(tr => tr.Sender)
                 .WithMany()
                 .HasForeignKey(tr => tr.SenderId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TeamRequest>()
                 .HasOne(tr => tr.Receiver)
                 .WithMany()
                 .HasForeignKey(tr => tr.ReceiverId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Configure ProjectProgress relationships
             modelBuilder.Entity<ProjectProgress>()
@@ -67,5 +72,4 @@ namespace TeamPro1.Models
         }
     }
 }
-
 
