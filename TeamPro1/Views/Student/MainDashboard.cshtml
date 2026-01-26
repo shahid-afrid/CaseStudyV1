@@ -488,31 +488,39 @@
 
         <div class="cards-container">
             <div class="dashboard-card">
-                
-                <h5 class="card-title">Student Dashboard</h5>
+                <div class="card-icon">
+                    <i class="fas fa-user-circle" style="color: var(--royal-blue);"></i>
+                </div>
+                <h5 class="card-title">Student Profile</h5>
                 <p class="card-text">View your profile and personal details.</p>
                 <a asp-controller="Student" asp-action="Dashboard" class="glass-btn">View Profile</a>
             </div>
 
-            <div class="dashboard-card @((ViewBag.IsSelectionAvailable != null && !(bool)ViewBag.IsSelectionAvailable) ? "disabled" : "")">
-                
-                <h5 class="card-title">Choose Faculty</h5>
-                <p class="card-text">Choose subjects and faculty for the semester.</p>
-                @if (ViewBag.IsSelectionAvailable != null && (bool)ViewBag.IsSelectionAvailable)
-                {
-                    <a asp-controller="Student" asp-action="SelectSubject" class="glass-btn">Select Now</a>
-                }
-                else
-                {
-                    <button class="glass-btn" disabled>Currently Unavailable</button>
-                }
+            <div class="dashboard-card">
+                <div class="card-icon">
+                    <i class="fas fa-users" style="color: #17a2b8;"></i>
+                </div>
+                <h5 class="card-title">Pool of Students</h5>
+                <p class="card-text">View available students and send team requests.</p>
+                <a asp-controller="Student" asp-action="PoolOfStudents" class="glass-btn">View Pool</a>
             </div>
 
             <div class="dashboard-card">
-                
-                <h5 class="card-title">My Selected Subjects</h5>
-                <p class="card-text">View all subjects you have enrolled in.</p>
-                <a asp-controller="Student" asp-action="MySelectedSubjects" class="glass-btn">View Subjects</a>
+                <div class="card-icon">
+                    <i class="fas fa-user-friends" style="color: var(--success-green);"></i>
+                </div>
+                <h5 class="card-title">Grouped Students Pool</h5>
+                <p class="card-text">View all formed teams with team numbers.</p>
+                <a asp-controller="Student" asp-action="GroupedStudentsPool" class="glass-btn">View Teams</a>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="card-icon">
+                    <i class="fas fa-chart-line" style="color: var(--warm-gold);"></i>
+                </div>
+                <h5 class="card-title">Status Update</h5>
+                <p class="card-text">Track your team's project progress and status.</p>
+                <a asp-controller="Student" asp-action="StatusUpdate" class="glass-btn">View Status</a>
             </div>
         </div>
     </div>

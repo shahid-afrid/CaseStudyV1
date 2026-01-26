@@ -1,0 +1,1132 @@
+@{
+    ViewData["Title"] = "Pool of Students";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Pool of Students - TeamPro1</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:700,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        :root {
+            --royal-blue: #274060;
+            --warm-gold: #FFC857;
+            --cream: #F9FAF2;
+            --slate: #CED3DC;
+            --card-shadow: rgba(39,64,96,0.13);
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --info-blue: #17a2b8;
+            --warning-orange: #ff9800;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: linear-gradient(rgba(249, 250, 242, 0.15), rgba(255, 200, 87, 0.10)),
+            url('@Url.Content("~/images/RGMCET-BACKGROUND.jpg")') center center/cover no-repeat fixed;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            display: block;
+            background: linear-gradient(135deg, var(--cream) 60%, var(--warm-gold) 100%);
+            opacity: 0.20;
+            pointer-events: none;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .dashboard-header {
+            background: rgba(249,250,242,0.92);
+            box-shadow: 0 8px 32px var(--card-shadow);
+            border-radius: 20px;
+            padding: 30px 40px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            margin-bottom: 30px;
+            border: 2px solid var(--slate);
+        }
+
+        .dashboard-header h2 {
+            font-size: 2.3em;
+            font-weight: 700;
+            color: var(--royal-blue);
+            margin: 0 0 10px 0;
+            letter-spacing: 1px;
+        }
+
+        .dashboard-header p {
+            color: #666;
+            font-size: 1em;
+            margin: 5px 0;
+        }
+
+        .nav-link {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(249,250,242,0.9);
+            color: var(--royal-blue);
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            border: 2px solid var(--slate);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link:hover {
+            background: var(--warm-gold);
+            color: var(--royal-blue);
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .alert {
+            padding: 18px 24px;
+            margin-bottom: 25px;
+            border: 3px solid transparent;
+            border-radius: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1em;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            animation: slideDown 0.5s ease;
+        }
+
+        .alert-success {
+            color: #155724;
+            background: linear-gradient(135deg, rgba(212, 237, 218, 0.98), rgba(195, 230, 203, 0.98));
+            border-color: var(--success-green);
+        }
+
+        .alert-danger {
+            color: #721c24;
+            background: linear-gradient(135deg, rgba(248, 215, 218, 0.98), rgba(242, 200, 203, 0.98));
+            border-color: var(--error-red);
+        }
+
+        .alert-warning {
+            color: #856404;
+            background: linear-gradient(135deg, rgba(255, 243, 205, 0.98), rgba(255, 236, 179, 0.98));
+            border-color: var(--warning-orange);
+        }
+
+        .alert-info {
+            color: #0c5460;
+            background: linear-gradient(135deg, rgba(209, 236, 241, 0.98), rgba(190, 229, 235, 0.98));
+            border-color: var(--info-blue);
+        }
+
+        @@keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .info-card {
+            background: rgba(249,250,242,0.95);
+            border-radius: 15px;
+            padding: 20px 30px;
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--slate);
+            box-shadow: 0 6px 25px var(--card-shadow);
+            margin-bottom: 30px;
+        }
+
+        .info-card h4 {
+            color: var(--royal-blue);
+            font-size: 1.2em;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #555;
+            line-height: 1.8;
+        }
+
+        .info-card ul li {
+            margin-bottom: 8px;
+        }
+
+        /* Table Container */
+        .table-container {
+            background: rgba(249,250,242,0.95);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--slate);
+            box-shadow: 0 8px 32px var(--card-shadow);
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+
+        /* Students Table */
+        .students-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.95em;
+        }
+
+        .students-table thead {
+            background: linear-gradient(135deg, var(--royal-blue), var(--warm-gold));
+            color: white;
+        }
+
+        .students-table thead th {
+            padding: 18px 15px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 1em;
+            letter-spacing: 0.5px;
+            border: none;
+        }
+
+        .students-table thead th:first-child {
+            border-top-left-radius: 12px;
+        }
+
+        .students-table thead th:last-child {
+            border-top-right-radius: 12px;
+        }
+
+        .students-table tbody tr {
+            background: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+        }
+
+        .students-table tbody tr:hover:not(.row-disabled) {
+            background: rgba(255, 255, 255, 0.95);
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px var(--card-shadow);
+        }
+
+        .students-table tbody tr.row-disabled {
+            opacity: 0.5;
+            background: rgba(200, 200, 200, 0.3);
+        }
+
+        .students-table tbody td {
+            padding: 18px 15px;
+            border-bottom: 1px solid var(--slate);
+            vertical-align: middle;
+        }
+
+        .students-table tbody tr:last-child td:first-child {
+            border-bottom-left-radius: 12px;
+        }
+
+        .students-table tbody tr:last-child td:last-child {
+            border-bottom-right-radius: 12px;
+        }
+
+        .students-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Table cell styles */
+        .text-center {
+            text-align: center !important;
+        }
+
+        .font-bold {
+            font-weight: 700;
+        }
+
+        .text-royal {
+            color: var(--royal-blue);
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .badge-green {
+            background: linear-gradient(135deg, rgba(40, 167, 69, 0.15), rgba(40, 167, 69, 0.25));
+            color: var(--success-green);
+            border: 2px solid var(--success-green);
+        }
+
+        .badge-orange {
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.15), rgba(255, 152, 0, 0.25));
+            color: var(--warning-orange);
+            border: 2px solid var(--warning-orange);
+        }
+
+        .badge-gray {
+            background: linear-gradient(135deg, rgba(108, 117, 125, 0.15), rgba(108, 117, 125, 0.25));
+            color: #6c757d;
+            border: 2px solid #6c757d;
+        }
+
+        /* Table Action Buttons */
+        .btn-table {
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-send-small {
+            background: linear-gradient(135deg, var(--royal-blue), var(--warm-gold));
+            color: white;
+            box-shadow: 0 3px 10px var(--card-shadow);
+        }
+
+        .btn-send-small:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 200, 87, 0.4);
+        }
+
+        .btn-send-small:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+        }
+
+        .btn-cancel-small {
+            background: linear-gradient(135deg, var(--error-red), #c82333);
+            color: white;
+            box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-cancel-small:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.5);
+        }
+
+        .btn-disabled-small {
+            background: #ccc;
+            color: #666;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(249,250,242,0.95);
+            border-radius: 20px;
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--slate);
+        }
+
+        .empty-state i {
+            font-size: 4em;
+            color: var(--slate);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            color: var(--royal-blue);
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            font-size: 1em;
+        }
+
+        /* Notification Bell Icon */
+        .notification-bell {
+            position: fixed;
+            top: 20px;
+            right: 80px;
+            background: rgba(249,250,242,0.95);
+            color: var(--royal-blue);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            cursor: pointer;
+            border: 2px solid var(--slate);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            box-shadow: 0 4px 15px var(--card-shadow);
+        }
+
+        .notification-bell:hover {
+            background: var(--warm-gold);
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 6px 20px rgba(255, 200, 87, 0.4);
+        }
+
+        .notification-bell .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error-red);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: 700;
+            border: 2px solid white;
+            animation: pulse 2s infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Modal Dialog */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-dialog {
+            background: rgba(249,250,242,0.98);
+            border-radius: 20px;
+            padding: 0;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            backdrop-filter: blur(12px);
+            border: 3px solid var(--slate);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        @@keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--royal-blue), var(--warm-gold));
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.8em;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 30px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .request-card {
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--slate);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+        }
+
+        .request-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--card-shadow);
+            border-color: var(--warm-gold);
+        }
+
+        .request-info {
+            flex-grow: 1;
+        }
+
+        .request-from {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--royal-blue);
+            margin-bottom: 5px;
+        }
+
+        .request-regd {
+            font-size: 0.95em;
+            color: #666;
+        }
+
+        .request-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-accept {
+            background: linear-gradient(135deg, var(--success-green), #218838);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-accept:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.5);
+        }
+
+        .btn-reject {
+            background: linear-gradient(135deg, var(--error-red), #c82333);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        }
+
+        .btn-reject:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.5);
+        }
+
+        .no-requests {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .no-requests i {
+            font-size: 3em;
+            color: var(--slate);
+            margin-bottom: 15px;
+        }
+
+        .no-requests h4 {
+            color: var(--royal-blue);
+            margin-bottom: 10px;
+        }
+
+        @@media (max-width: 768px) {
+            .main-container {
+                padding: 0 15px;
+            }
+
+            .dashboard-header {
+                padding: 25px 20px;
+            }
+
+            .dashboard-header h2 {
+                font-size: 1.8em;
+            }
+
+            .nav-link {
+                position: static;
+                display: inline-flex;
+                margin-bottom: 20px;
+            }
+
+            .notification-bell {
+                position: static;
+                margin-left: 10px;
+            }
+
+            .modal-dialog {
+                width: 95%;
+            }
+
+            .request-card {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .request-actions {
+                width: 100%;
+            }
+
+            .btn-accept, .btn-reject {
+                flex: 1;
+            }
+
+            /* Mobile Table Styles */
+            .table-container {
+                padding: 15px;
+                overflow-x: auto;
+            }
+
+            .students-table {
+                font-size: 0.85em;
+            }
+
+            .students-table thead th {
+                padding: 12px 8px;
+                font-size: 0.9em;
+            }
+
+            .students-table tbody td {
+                padding: 12px 8px;
+            }
+
+            .btn-table {
+                padding: 6px 10px;
+                font-size: 0.75em;
+            }
+
+            /* Hide some columns on mobile */
+            .students-table th:nth-child(4),
+            .students-table td:nth-child(4) {
+                display: none;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            /* Stack table for very small screens */
+            .students-table thead {
+                display: none;
+            }
+
+            .students-table tbody tr {
+                display: block;
+                margin-bottom: 15px;
+                border: 2px solid var(--slate);
+                border-radius: 12px;
+                overflow: hidden;
+            }
+
+            .students-table tbody td {
+                display: block;
+                text-align: right;
+                padding: 10px 15px;
+                border-bottom: 1px solid var(--slate);
+                position: relative;
+            }
+
+            .students-table tbody td::before {
+                content: attr(data-label);
+                float: left;
+                font-weight: 700;
+                color: var(--royal-blue);
+            }
+
+            .students-table tbody td:last-child {
+                border-bottom: none;
+            }
+
+            .text-center {
+                text-align: right !important;
+            }
+        }
+
+        /* App Footer Styling */
+        .app-footer {
+            background: rgba(249,250,242,0.95);
+            backdrop-filter: blur(12px);
+            border-top: 3px solid var(--slate);
+            box-shadow: 0 -8px 32px var(--card-shadow);
+            padding: 30px 20px;
+            margin-top: 50px;
+            text-align: center;
+            font-family: 'Montserrat', Arial, sans-serif;
+            color: #274060;
+            position: relative;
+            border-radius: 20px 20px 0 0;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-line {
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .footer-line.guidance {
+            font-size: 1em;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 12px;
+        }
+
+        .footer-line.team {
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #444;
+        }
+
+        .footer-line.copyright {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #274060;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid rgba(39,64,96,0.1);
+        }
+
+        .footer-highlight {
+            color: #274060;
+            font-weight: 700;
+        }
+
+        .footer-name {
+            color: #274060;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <a href="@Url.Action("MainDashboard", "Student")" class="nav-link">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+
+    <!-- Notification Bell Icon -->
+    <div class="notification-bell" onclick="openNotificationModal()" title="Team Requests">
+        <i class="fas fa-bell"></i>
+        @if (ViewBag.ReceivedRequestsCount != null && ViewBag.ReceivedRequestsCount > 0)
+        {
+            <span class="badge">@ViewBag.ReceivedRequestsCount</span>
+        }
+    </div>
+
+    <div class="main-container">
+        <div class="dashboard-header">
+            <h2><i class="fas fa-users"></i> Pool of Students</h2>
+            <p>
+                <strong>@ViewBag.CurrentStudentName</strong> (@ViewBag.CurrentStudentRegdNumber)
+            </p>
+            <p style="font-size: 0.9em; color: #888;">Select Your Perfect Teammate for Project Collaboration</p>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                @TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-times-circle"></i>
+                @TempData["ErrorMessage"]
+            </div>
+        }
+
+        @if (ViewBag.CurrentStudentInTeam)
+        {
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                You are already in a team. You cannot send or accept team requests.
+            </div>
+        }
+
+        <div class="info-card">
+            <h4><i class="fas fa-info-circle"></i> How it works:</h4>
+            <ul>
+                <li>You can send a team request to <strong>one student at a time</strong> from your year and semester.</li>
+                <li>Once you send a request, wait for the other student to accept or reject it.</li>
+                <li>You can <strong>cancel your request</strong> if the other student hasn't responded yet.</li>
+                <li>Students already in a team are marked as <strong>"In Team"</strong> and cannot receive requests.</li>
+                <li>After your request is accepted, a team will be formed automatically.</li>
+            </ul>
+        </div>
+
+        @if (ViewBag.StudentPool != null && ViewBag.StudentPool.Count > 0)
+        {
+            <div class="table-container">
+                <table class="students-table">
+                    <thead>
+                        <tr>
+                            <th>S.No</th>
+                            <th>Registration Number</th>
+                            <th>Student Name</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int serialNo = 1;
+                        }
+                        @foreach (var item in ViewBag.StudentPool)
+                        {
+                            var student = item.Student;
+                            var hasPendingRequest = item.HasPendingRequest;
+                            var isInTeam = item.IsInTeam;
+
+                            <tr class="@(isInTeam ? "row-disabled" : "")">
+                                <td class="text-center">@serialNo</td>
+                                <td class="font-bold text-royal">@student.RegdNumber</td>
+                                <td>@student.FullName</td>
+                                <td>@student.Department</td>
+                                <td class="text-center">
+                                    @if (isInTeam)
+                                    {
+                                        <span class="badge badge-gray">
+                                            <i class="fas fa-user-check"></i> In Team
+                                        </span>
+                                    }
+                                    else if (hasPendingRequest)
+                                    {
+                                        <span class="badge badge-orange">
+                                            <i class="fas fa-clock"></i> Request Sent
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-green">
+                                            <i class="fas fa-check"></i> Available
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (!ViewBag.CurrentStudentInTeam && !isInTeam)
+                                    {
+                                        @if (hasPendingRequest)
+                                        {
+                                            <button class="btn-table btn-cancel-small" onclick="cancelRequest(@student.Id, '@student.RegdNumber')">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-table btn-send-small" 
+                                                    onclick="sendRequest(@student.Id, '@student.RegdNumber')"
+                                                    @(ViewBag.HasPendingRequest && !hasPendingRequest ? "disabled" : "")>
+                                                <i class="fas fa-paper-plane"></i> Send Request
+                                            </button>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-table btn-disabled-small" disabled>
+                                            <i class="fas fa-lock"></i> Unavailable
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                            serialNo++;
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-user-slash"></i>
+                <h3>No Students Available</h3>
+                <p>There are no other students in your year and semester at the moment.</p>
+            </div>
+        }
+    </div>
+
+    <!-- Notification Modal -->
+    <div class="modal-overlay" id="notificationModal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3><i class="fas fa-bell"></i> Team Requests</h3>
+                <button class="modal-close" onclick="closeNotificationModal()" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                @if (ViewBag.ReceivedRequests != null && ViewBag.ReceivedRequests.Count > 0)
+                {
+                    foreach (var request in ViewBag.ReceivedRequests)
+                    {
+                        <div class="request-card" id="request-@request.Id">
+                            <div class="request-info">
+                                <div class="request-from">@request.Sender.FullName</div>
+                                <div class="request-regd">@request.Sender.RegdNumber</div>
+                            </div>
+                            <div class="request-actions">
+                                <button class="btn-accept" onclick="acceptRequest(@request.Id, '@request.Sender.RegdNumber')">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="btn-reject" onclick="rejectRequest(@request.Id, '@request.Sender.RegdNumber')">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="no-requests">
+                        <i class="fas fa-inbox"></i>
+                        <h4>No Pending Requests</h4>
+                        <p>You don't have any team requests at the moment.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+            <div class="footer-line guidance">
+                Developed under the guidance of <span class="footer-highlight">Dr. P. Penchala Prasad</span>, Associate Professor, CSE(DS), RGMCET
+            </div>
+            <div class="footer-line team">
+                With team <span class="footer-name">Mr. S. Md. Shahid Afrid</span> (23091A32D4) & <span class="footer-name">Ms. G. Veena</span> (23091A32H9)
+            </div>
+            <div class="footer-line copyright">
+                &copy; All Rights Reserved @@2025
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function sendRequest(receiverId, regdNumber) {
+            if (!confirm(`Send team request to ${regdNumber}?`)) {
+                return;
+            }
+
+            fetch('@Url.Action("SendTeamRequest", "Student")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: `receiverId=${receiverId}&__RequestVerificationToken=${getAntiForgeryToken()}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+
+        function cancelRequest(receiverId, regdNumber) {
+            if (!confirm(`Cancel team request to ${regdNumber}?`)) {
+                return;
+            }
+
+            fetch('@Url.Action("CancelTeamRequest", "Student")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: `receiverId=${receiverId}&__RequestVerificationToken=${getAntiForgeryToken()}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+
+        // Modal functions
+        function openNotificationModal() {
+            document.getElementById('notificationModal').classList.add('active');
+        }
+
+        function closeNotificationModal() {
+            document.getElementById('notificationModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('notificationModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeNotificationModal();
+            }
+        });
+
+        // Accept request function
+        function acceptRequest(requestId, regdNumber) {
+            if (!confirm(`Accept team request from ${regdNumber}? This will form a team.`)) {
+                return;
+            }
+
+            fetch('@Url.Action("AcceptRequest", "Student")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: `requestId=${requestId}&__RequestVerificationToken=${getAntiForgeryToken()}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    closeNotificationModal();
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+
+        // Reject request function
+        function rejectRequest(requestId, regdNumber) {
+            if (!confirm(`Reject team request from ${regdNumber}?`)) {
+                return;
+            }
+
+            fetch('@Url.Action("RejectRequest", "Student")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: `requestId=${requestId}&__RequestVerificationToken=${getAntiForgeryToken()}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    // Remove the request card
+                    const requestCard = document.getElementById(`request-${requestId}`);
+                    if (requestCard) {
+                        requestCard.style.transition = 'all 0.3s ease';
+                        requestCard.style.opacity = '0';
+                        requestCard.style.transform = 'translateX(100%)';
+                        setTimeout(() => {
+                            requestCard.remove();
+                            // Check if no more requests
+                            const remainingRequests = document.querySelectorAll('.request-card');
+                            if (remainingRequests.length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                }
+            })
+            .catch(error => {
+                alert('An error occurred. Please try again.');
+                console.error('Error:', error);
+            });
+        }
+
+        function getAntiForgeryToken() {
+            return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        }
+    </script>
+
+    @Html.AntiForgeryToken()
+</body>
+</html>

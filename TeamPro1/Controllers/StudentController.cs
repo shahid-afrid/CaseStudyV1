@@ -85,6 +85,12 @@ namespace TeamPro1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(StudentRegistrationModel model)
         {
+            // Ensure registration number is uppercase before validation
+            if (!string.IsNullOrEmpty(model.RegdNumber))
+            {
+                model.RegdNumber = model.RegdNumber.ToUpper();
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -251,9 +257,48 @@ namespace TeamPro1.Controllers
         }
 
         // GET: Student/ChangePassword
-        public IActionResult ChangePassword()
+        public async Task<IActionResult> ChangePassword()
         {
-            return View();
+            // Check if student is logged in
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                TempData["ErrorMessage"] = "Please login to change your password.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Parse student ID and fetch student from database
+                if (!int.TryParse(studentIdString, out int studentId))
+                {
+                    TempData["ErrorMessage"] = "Invalid session data. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                var student = await _context.Students.FindAsync(studentId);
+                
+                if (student == null)
+                {
+                    TempData["ErrorMessage"] = "Student not found. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Populate the model with student info
+                var model = new ChangePasswordViewModel
+                {
+                    StudentId = studentId.ToString(),
+                    StudentName = student.FullName
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (in a real app, use proper logging)
+                TempData["ErrorMessage"] = "An error occurred. Please try again.";
+                return RedirectToAction("Dashboard");
+            }
         }
 
         // POST: Student/ChangePassword
@@ -266,9 +311,436 @@ namespace TeamPro1.Controllers
                 return View(model);
             }
 
-            // TODO: Implement change password logic
-            TempData["SuccessMessage"] = "Password changed successfully!";
-            return RedirectToAction("MainDashboard");
+            try
+            {
+                // Parse student ID
+                if (!int.TryParse(model.StudentId, out int studentId))
+                {
+                    TempData["ErrorMessage"] = "Invalid student ID. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Find the student in database
+                var student = await _context.Students.FindAsync(studentId);
+                
+                if (student == null)
+                {
+                    TempData["ErrorMessage"] = "Student not found. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Verify current password
+                if (student.Password != model.CurrentPassword)
+                {
+                    ModelState.AddModelError("CurrentPassword", "Current password is incorrect.");
+                    TempData["ErrorMessage"] = "Current password is incorrect.";
+                    return View(model);
+                }
+
+                // Check if new password is same as current password
+                if (model.CurrentPassword == model.NewPassword)
+                {
+                    ModelState.AddModelError("NewPassword", "New password must be different from current password.");
+                    TempData["ErrorMessage"] = "New password must be different from current password.";
+                    return View(model);
+                }
+
+                // Update password
+                student.Password = model.NewPassword; // In production, hash this password
+                
+                // Mark entity as modified
+                _context.Entry(student).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = "Password changed successfully! Please login with your new password.";
+                
+                // Clear session and redirect to login
+                HttpContext.Session.Clear();
+                return RedirectToAction("Login");
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (in a real app, use proper logging)
+                TempData["ErrorMessage"] = "An error occurred while changing your password. Please try again.";
+                return View(model);
+            }
+        }
+
+        // GET: Student/PoolOfStudents
+        public async Task<IActionResult> PoolOfStudents()
+        {
+            // Check if student is logged in
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                TempData["ErrorMessage"] = "Please login to view pool of students.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Parse student ID
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    TempData["ErrorMessage"] = "Invalid session data. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Get current student details
+                var currentStudent = await _context.Students.FindAsync(currentStudentId);
+                if (currentStudent == null)
+                {
+                    TempData["ErrorMessage"] = "Student not found. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Get all students from same year and semester (excluding current student)
+                var availableStudents = await _context.Students
+                    .Where(s => s.Year == currentStudent.Year && 
+                                s.Semester == currentStudent.Semester && 
+                                s.Id != currentStudentId)
+                    .OrderBy(s => s.RegdNumber)
+                    .ToListAsync();
+
+                // Get all team requests where current student is sender
+                var sentRequests = await _context.TeamRequests
+                    .Where(tr => tr.SenderId == currentStudentId && tr.Status == "Pending")
+                    .ToListAsync();
+
+                // Get all team requests where current student is receiver (INCOMING REQUESTS)
+                var receivedRequests = await _context.TeamRequests
+                    .Include(tr => tr.Sender)
+                    .Where(tr => tr.ReceiverId == currentStudentId && tr.Status == "Pending")
+                    .ToListAsync();
+
+                // Get all teams to check if students are already in a team
+                var existingTeams = await _context.Teams.ToListAsync();
+
+                // Check if current student is already in a team
+                var currentStudentInTeam = existingTeams.Any(t => 
+                    t.Student1Id == currentStudentId || t.Student2Id == currentStudentId);
+
+                // Create view model with student info and their status
+                var studentPool = availableStudents.Select(s => new
+                {
+                    Student = s,
+                    HasPendingRequest = sentRequests.Any(sr => sr.ReceiverId == s.Id),
+                    IsInTeam = existingTeams.Any(t => t.Student1Id == s.Id || t.Student2Id == s.Id)
+                }).ToList();
+
+                ViewBag.CurrentStudentId = currentStudentId;
+                ViewBag.CurrentStudentName = currentStudent.FullName;
+                ViewBag.CurrentStudentRegdNumber = currentStudent.RegdNumber;
+                ViewBag.CurrentStudentInTeam = currentStudentInTeam;
+                ViewBag.HasPendingRequest = sentRequests.Any();
+                ViewBag.ReceivedRequests = receivedRequests; // NEW: Pass received requests
+                ViewBag.ReceivedRequestsCount = receivedRequests.Count; // NEW: Count for badge
+                ViewBag.StudentPool = studentPool;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                TempData["ErrorMessage"] = "An error occurred while loading pool of students.";
+                return RedirectToAction("MainDashboard");
+            }
+        }
+
+        // POST: Student/SendTeamRequest
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendTeamRequest(int receiverId)
+        {
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                return Json(new { success = false, message = "Please login first." });
+            }
+
+            try
+            {
+                if (!int.TryParse(studentIdString, out int senderId))
+                {
+                    return Json(new { success = false, message = "Invalid session." });
+                }
+
+                // Check if sender already has a pending request
+                var existingRequest = await _context.TeamRequests
+                    .FirstOrDefaultAsync(tr => tr.SenderId == senderId && tr.Status == "Pending");
+
+                if (existingRequest != null)
+                {
+                    return Json(new { success = false, message = "You already have a pending request." });
+                }
+
+                // Check if either student is already in a team
+                var senderInTeam = await _context.Teams
+                    .AnyAsync(t => t.Student1Id == senderId || t.Student2Id == senderId);
+                var receiverInTeam = await _context.Teams
+                    .AnyAsync(t => t.Student1Id == receiverId || t.Student2Id == receiverId);
+
+                if (senderInTeam)
+                {
+                    return Json(new { success = false, message = "You are already in a team." });
+                }
+
+                if (receiverInTeam)
+                {
+                    return Json(new { success = false, message = "This student is already in a team." });
+                }
+
+                // Create new team request
+                var teamRequest = new TeamRequest
+                {
+                    SenderId = senderId,
+                    ReceiverId = receiverId,
+                    Status = "Pending",
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.TeamRequests.Add(teamRequest);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Team request sent successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while sending request." });
+            }
+        }
+
+        // POST: Student/CancelTeamRequest
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelTeamRequest(int receiverId)
+        {
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                return Json(new { success = false, message = "Please login first." });
+            }
+
+            try
+            {
+                if (!int.TryParse(studentIdString, out int senderId))
+                {
+                    return Json(new { success = false, message = "Invalid session." });
+                }
+
+                // Find the pending request
+                var request = await _context.TeamRequests
+                    .FirstOrDefaultAsync(tr => tr.SenderId == senderId && 
+                                              tr.ReceiverId == receiverId && 
+                                              tr.Status == "Pending");
+
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "Request not found." });
+                }
+
+                // Remove the request
+                _context.TeamRequests.Remove(request);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Request cancelled successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while canceling request." });
+            }
+        }
+
+        // POST: Student/AcceptRequest
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AcceptRequest(int requestId)
+        {
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                return Json(new { success = false, message = "Please login first." });
+            }
+
+            try
+            {
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    return Json(new { success = false, message = "Invalid session." });
+                }
+
+                // Find the request
+                var request = await _context.TeamRequests
+                    .FirstOrDefaultAsync(tr => tr.Id == requestId && 
+                                              tr.ReceiverId == currentStudentId && 
+                                              tr.Status == "Pending");
+
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "Request not found or already processed." });
+                }
+
+                // Check if either student is already in a team
+                var senderInTeam = await _context.Teams
+                    .AnyAsync(t => t.Student1Id == request.SenderId || t.Student2Id == request.SenderId);
+                var receiverInTeam = await _context.Teams
+                    .AnyAsync(t => t.Student1Id == currentStudentId || t.Student2Id == currentStudentId);
+
+                if (senderInTeam)
+                {
+                    // Remove the request since sender is already in a team
+                    _context.TeamRequests.Remove(request);
+                    await _context.SaveChangesAsync();
+                    return Json(new { success = false, message = "The sender is already in a team." });
+                }
+
+                if (receiverInTeam)
+                {
+                    return Json(new { success = false, message = "You are already in a team." });
+                }
+
+                // Get the next team number
+                var maxTeamNumber = await _context.Teams.AnyAsync() 
+                    ? await _context.Teams.MaxAsync(t => t.TeamNumber) 
+                    : 0;
+                var newTeamNumber = maxTeamNumber + 1;
+
+                // Create the team
+                var team = new Team
+                {
+                    TeamNumber = newTeamNumber,
+                    Student1Id = request.SenderId,
+                    Student2Id = currentStudentId,
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.Teams.Add(team);
+
+                // Update request status
+                request.Status = "Accepted";
+                request.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = $"Request accepted! Team {newTeamNumber} created successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while accepting request." });
+            }
+        }
+
+        // POST: Student/RejectRequest
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectRequest(int requestId)
+        {
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                return Json(new { success = false, message = "Please login first." });
+            }
+
+            try
+            {
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    return Json(new { success = false, message = "Invalid session." });
+                }
+
+                // Find the request
+                var request = await _context.TeamRequests
+                    .FirstOrDefaultAsync(tr => tr.Id == requestId && 
+                                              tr.ReceiverId == currentStudentId && 
+                                              tr.Status == "Pending");
+
+                if (request == null)
+                {
+                    return Json(new { success = false, message = "Request not found or already processed." });
+                }
+
+                // Update request status
+                request.Status = "Rejected";
+                request.UpdatedAt = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Request rejected successfully!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "An error occurred while rejecting request." });
+            }
+        }
+
+        // GET: Student/GroupedStudentsPool
+        public async Task<IActionResult> GroupedStudentsPool()
+        {
+            // Check if student is logged in
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                TempData["ErrorMessage"] = "Please login to view grouped student pool.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Parse student ID
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    TempData["ErrorMessage"] = "Invalid session data. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Get current student details
+                var currentStudent = await _context.Students.FindAsync(currentStudentId);
+                if (currentStudent == null)
+                {
+                    TempData["ErrorMessage"] = "Student not found. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Get all teams with student details
+                // Show all teams if semester is invalid (> 2), otherwise filter by year and semester
+                var teams = await _context.Teams
+                    .Include(t => t.Student1)
+                    .Include(t => t.Student2)
+                    .OrderBy(t => t.TeamNumber)
+                    .ToListAsync();
+
+                // Only filter if the current student has valid semester (1 or 2)
+                List<Team> filteredTeams;
+                if (currentStudent.Semester >= 1 && currentStudent.Semester <= 2)
+                {
+                    filteredTeams = teams.Where(t => 
+                        t.Student1 != null && 
+                        t.Student2 != null &&
+                        t.Student1.Year == currentStudent.Year && 
+                        t.Student1.Semester == currentStudent.Semester
+                    ).ToList();
+                }
+                else
+                {
+                    // Show all teams if semester data is invalid
+                    filteredTeams = teams;
+                }
+
+                ViewBag.CurrentStudentId = currentStudentId;
+                ViewBag.CurrentStudentName = currentStudent.FullName;
+                ViewBag.CurrentStudentRegdNumber = currentStudent.RegdNumber;
+                ViewBag.CurrentStudentYear = currentStudent.Year;
+                ViewBag.CurrentStudentSemester = currentStudent.Semester;
+                ViewBag.Teams = filteredTeams;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                TempData["ErrorMessage"] = $"An error occurred while loading grouped student pool: {ex.Message}";
+                return RedirectToAction("MainDashboard");
+            }
         }
 
         // GET: Student/Logout
@@ -277,6 +749,497 @@ namespace TeamPro1.Controllers
             HttpContext.Session.Clear();
             TempData["SuccessMessage"] = "Logged out successfully!";
             return RedirectToAction("Login");
+        }
+
+        // Utility method to fix invalid semester data (Admin/Debug use only)
+        // Access via: /Student/FixSemesterData
+        public async Task<IActionResult> FixSemesterData()
+        {
+            try
+            {
+                // Get all students with invalid semester data (not 1 or 2)
+                var studentsToFix = await _context.Students
+                    .Where(s => s.Semester < 1 || s.Semester > 2)
+                    .ToListAsync();
+
+                if (studentsToFix.Count == 0)
+                {
+                    return Content("No students with invalid semester data found. All semesters are either 1 or 2.");
+                }
+
+                // Fix each student's semester
+                foreach (var student in studentsToFix)
+                {
+                    // Convert semester 3,4,5,6,7,8 to 1 or 2
+                    // Odd semesters (3,5,7) -> 1, Even semesters (4,6,8) -> 2
+                    student.Semester = (student.Semester % 2 == 0) ? 2 : 1;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Content($"Successfully fixed {studentsToFix.Count} student(s) with invalid semester data. All semesters now converted to 1 or 2.");
+            }
+            catch (Exception ex)
+            {
+                return Content($"Error fixing semester data: {ex.Message}");
+            }
+        }
+
+        // GET: Student/StatusUpdate (Project Status)
+        public async Task<IActionResult> StatusUpdate()
+        {
+            // Check if student is logged in
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                TempData["ErrorMessage"] = "Please login to view project status.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Parse student ID
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    TempData["ErrorMessage"] = "Invalid session data. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Get current student details
+                var currentStudent = await _context.Students.FindAsync(currentStudentId);
+                if (currentStudent == null)
+                {
+                    TempData["ErrorMessage"] = "Student not found. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                // Find the team that the current student is part of
+                var team = await _context.Teams
+                    .Include(t => t.Student1)
+                    .Include(t => t.Student2)
+                    .FirstOrDefaultAsync(t => t.Student1Id == currentStudentId || t.Student2Id == currentStudentId);
+
+                if (team == null)
+                {
+                    ViewBag.HasTeam = false;
+                    ViewBag.Message = "You are not part of any team yet. Please form a team first.";
+                    ViewBag.CurrentStudentName = currentStudent.FullName;
+                    ViewBag.CurrentStudentRegdNumber = currentStudent.RegdNumber;
+                    return View();
+                }
+
+                // Get project progress for this team
+                var projectProgress = await _context.ProjectProgresses
+                    .Include(pp => pp.AssignedFaculty)
+                    .FirstOrDefaultAsync(pp => pp.TeamId == team.Id);
+
+                // If no project progress exists, create a default one
+                if (projectProgress == null)
+                {
+                    projectProgress = new ProjectProgress
+                    {
+                        TeamId = team.Id,
+                        CompletionPercentage = 0,
+                        Status = "Not Started",
+                        CreatedAt = DateTime.Now
+                    };
+                    _context.ProjectProgresses.Add(projectProgress);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Get all meetings for this team, ordered by meeting number
+                // Handle case where TeamMeetings table might not exist yet
+                List<TeamMeeting> teamMeetings = new List<TeamMeeting>();
+                try
+                {
+                    teamMeetings = await _context.TeamMeetings
+                        .Where(tm => tm.TeamId == team.Id)
+                        .OrderBy(tm => tm.MeetingNumber)
+                        .ToListAsync();
+                }
+                catch (Exception dbEx)
+                {
+                    // TeamMeetings table doesn't exist yet
+                    if (dbEx.Message.Contains("Invalid object name 'TeamMeetings'") || 
+                        dbEx.InnerException?.Message.Contains("Invalid object name 'TeamMeetings'") == true)
+                    {
+                        TempData["ErrorMessage"] = @"?? TeamMeetings table not found in database. 
+                            Please run the SQL script: Scripts\AddTeamMeetingTable.sql to create the table first. 
+                            Instructions: Open SQL Server Management Studio ? Connect to your database ? Run the script.";
+                        teamMeetings = new List<TeamMeeting>();
+                    }
+                    else
+                    {
+                        // Re-throw other database errors
+                        throw;
+                    }
+                }
+
+                ViewBag.HasTeam = true;
+                ViewBag.CurrentStudentName = currentStudent.FullName;
+                ViewBag.CurrentStudentRegdNumber = currentStudent.RegdNumber;
+                ViewBag.Team = team;
+                ViewBag.ProjectProgress = projectProgress;
+                ViewBag.TeamMeetings = teamMeetings;
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                // Log the exception
+                TempData["ErrorMessage"] = $"An error occurred while loading project status: {ex.Message}";
+                return RedirectToAction("MainDashboard");
+            }
+        }
+
+        // POST: Student/AddMeeting
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddMeeting(int TeamId, int MeetingNumber, DateTime? MeetingDate, string? Notes, int? CompletionPercentage, IFormFile? ProofFile)
+        {
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                TempData["ErrorMessage"] = "?? Session expired. Please login again.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Detailed validation with specific error messages
+                if (TeamId <= 0)
+                {
+                    TempData["ErrorMessage"] = "? Invalid Team ID. Please try again.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (MeetingNumber <= 0)
+                {
+                    TempData["ErrorMessage"] = "? Meeting number must be greater than 0.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (!MeetingDate.HasValue)
+                {
+                    TempData["ErrorMessage"] = "?? Meeting date is required. Please select a date.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (MeetingDate.Value > DateTime.Now.AddDays(1))
+                {
+                    TempData["WarningMessage"] = "?? Meeting date is in the future. Are you sure this is correct?";
+                    // Don't return - allow it but warn
+                }
+
+                if (!CompletionPercentage.HasValue)
+                {
+                    CompletionPercentage = 0;
+                }
+
+                if (CompletionPercentage < 0 || CompletionPercentage > 100)
+                {
+                    TempData["ErrorMessage"] = "? Completion percentage must be between 0 and 100.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Verify student is part of this team
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    TempData["ErrorMessage"] = "? Invalid session data. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                var team = await _context.Teams
+                    .FirstOrDefaultAsync(t => t.Id == TeamId && 
+                                            (t.Student1Id == currentStudentId || t.Student2Id == currentStudentId));
+
+                if (team == null)
+                {
+                    TempData["ErrorMessage"] = "?? You are not authorized to add meetings for this team.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // CRITICAL: Check if problem statement and mentor are assigned BEFORE allowing meeting creation
+                var projectProgress = await _context.ProjectProgresses
+                    .Include(pp => pp.AssignedFaculty)
+                    .FirstOrDefaultAsync(pp => pp.TeamId == TeamId);
+
+                if (projectProgress == null)
+                {
+                    TempData["ErrorMessage"] = "?? Cannot add meeting. Project progress record not found.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (string.IsNullOrEmpty(projectProgress.ProblemStatement))
+                {
+                    TempData["ErrorMessage"] = "?? Cannot add meeting. Problem statement must be assigned by faculty first.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (projectProgress.AssignedFacultyId == null)
+                {
+                    TempData["ErrorMessage"] = "?? Cannot add meeting. Mentor must be assigned by faculty first.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Check if meeting number already exists for this team
+                var existingMeeting = await _context.TeamMeetings
+                    .FirstOrDefaultAsync(tm => tm.TeamId == TeamId && tm.MeetingNumber == MeetingNumber);
+
+                if (existingMeeting != null)
+                {
+                    TempData["ErrorMessage"] = $"? Meeting #{MeetingNumber} already exists for your team. Please use a different meeting number.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Handle proof file upload
+                string? proofFilePath = null;
+                if (ProofFile != null && ProofFile.Length > 0)
+                {
+                    // Validate file size (max 5MB)
+                    if (ProofFile.Length > 5 * 1024 * 1024)
+                    {
+                        TempData["ErrorMessage"] = "? Proof file size must be less than 5MB.";
+                        return RedirectToAction("StatusUpdate");
+                    }
+
+                    // Validate file type
+                    var extension = Path.GetExtension(ProofFile.FileName).ToLower();
+                    if (extension != ".jpg" && extension != ".jpeg")
+                    {
+                        TempData["ErrorMessage"] = "? Only JPG/JPEG files are allowed for proof upload. Please select a valid image file.";
+                        return RedirectToAction("StatusUpdate");
+                    }
+
+                    try
+                    {
+                        // Create uploads directory if it doesn't exist
+                        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "proofs");
+                        if (!Directory.Exists(uploadsFolder))
+                        {
+                            Directory.CreateDirectory(uploadsFolder);
+                        }
+
+                        // Generate unique filename
+                        var uniqueFileName = $"proof_{TeamId}_meeting{MeetingNumber}_{DateTime.Now:yyyyMMddHHmmss}{extension}";
+                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                        // Save file
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await ProofFile.CopyToAsync(fileStream);
+                        }
+
+                        proofFilePath = $"/uploads/proofs/{uniqueFileName}";
+                    }
+                    catch (Exception fileEx)
+                    {
+                        TempData["ErrorMessage"] = $"? Failed to upload proof file: {fileEx.Message}";
+                        return RedirectToAction("StatusUpdate");
+                    }
+                }
+
+                // Create new meeting
+                var meeting = new TeamMeeting
+                {
+                    TeamId = TeamId,
+                    MeetingNumber = MeetingNumber,
+                    MeetingDate = MeetingDate.Value,
+                    Notes = Notes,
+                    CompletionPercentage = CompletionPercentage.Value,
+                    ProofUploads = proofFilePath,
+                    Status = "Completed",
+                    CreatedAt = DateTime.Now
+                };
+
+                _context.TeamMeetings.Add(meeting);
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"? Meeting #{MeetingNumber} added successfully! Completion: {CompletionPercentage}%";
+                return RedirectToAction("StatusUpdate");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                TempData["ErrorMessage"] = $"? Database error while adding meeting: {dbEx.InnerException?.Message ?? dbEx.Message}";
+                return RedirectToAction("StatusUpdate");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"? An unexpected error occurred: {ex.Message}. Please try again or contact support.";
+                return RedirectToAction("StatusUpdate");
+            }
+        }
+
+        // POST: Student/UpdateMeeting
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateMeeting(int MeetingId, int TeamId, int MeetingNumber, DateTime? MeetingDate, string? Notes, int? CompletionPercentage, IFormFile? ProofFile)
+        {
+            var studentIdString = HttpContext.Session.GetString("StudentId");
+            if (string.IsNullOrEmpty(studentIdString))
+            {
+                TempData["ErrorMessage"] = "?? Session expired. Please login again.";
+                return RedirectToAction("Login");
+            }
+
+            try
+            {
+                // Detailed validation
+                if (MeetingId <= 0)
+                {
+                    TempData["ErrorMessage"] = "? Invalid Meeting ID.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (!MeetingDate.HasValue)
+                {
+                    TempData["ErrorMessage"] = "?? Meeting date is required.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (!CompletionPercentage.HasValue)
+                {
+                    TempData["ErrorMessage"] = "? Completion percentage is required.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                if (CompletionPercentage < 0 || CompletionPercentage > 100)
+                {
+                    TempData["ErrorMessage"] = "? Completion percentage must be between 0 and 100.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Verify student is part of this team
+                if (!int.TryParse(studentIdString, out int currentStudentId))
+                {
+                    TempData["ErrorMessage"] = "? Invalid session data. Please login again.";
+                    return RedirectToAction("Login");
+                }
+
+                var team = await _context.Teams
+                    .FirstOrDefaultAsync(t => t.Id == TeamId && 
+                                            (t.Student1Id == currentStudentId || t.Student2Id == currentStudentId));
+
+                if (team == null)
+                {
+                    TempData["ErrorMessage"] = "?? You are not authorized to update meetings for this team.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Find the meeting to update
+                var meeting = await _context.TeamMeetings
+                    .FirstOrDefaultAsync(tm => tm.Id == MeetingId && tm.TeamId == TeamId);
+
+                if (meeting == null)
+                {
+                    TempData["ErrorMessage"] = "? Meeting not found.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Only allow editing of meeting 1 and only if problem statement and mentor are assigned
+                if (meeting.MeetingNumber != 1)
+                {
+                    TempData["ErrorMessage"] = "?? Only the first meeting can be edited.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Verify problem statement and mentor are assigned
+                var projectProgress = await _context.ProjectProgresses
+                    .Include(pp => pp.AssignedFaculty)
+                    .FirstOrDefaultAsync(pp => pp.TeamId == TeamId);
+
+                if (projectProgress == null || string.IsNullOrEmpty(projectProgress.ProblemStatement) || projectProgress.AssignedFacultyId == null)
+                {
+                    TempData["ErrorMessage"] = "?? Cannot edit meeting until problem statement and mentor are assigned by faculty.";
+                    return RedirectToAction("StatusUpdate");
+                }
+
+                // Handle proof file upload
+                string? proofFilePath = meeting.ProofUploads; // Keep existing proof by default
+                if (ProofFile != null && ProofFile.Length > 0)
+                {
+                    // Validate file size
+                    if (ProofFile.Length > 5 * 1024 * 1024)
+                    {
+                        TempData["ErrorMessage"] = "? Proof file size must be less than 5MB.";
+                        return RedirectToAction("StatusUpdate");
+                    }
+
+                    // Validate file type
+                    var extension = Path.GetExtension(ProofFile.FileName).ToLower();
+                    if (extension != ".jpg" && extension != ".jpeg")
+                    {
+                        TempData["ErrorMessage"] = "? Only JPG/JPEG files are allowed for proof upload.";
+                        return RedirectToAction("StatusUpdate");
+                    }
+
+                    try
+                    {
+                        // Create uploads directory if it doesn't exist
+                        var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "proofs");
+                        if (!Directory.Exists(uploadsFolder))
+                        {
+                            Directory.CreateDirectory(uploadsFolder);
+                        }
+
+                        // Delete old proof file if it exists
+                        if (!string.IsNullOrEmpty(meeting.ProofUploads))
+                        {
+                            var oldFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", meeting.ProofUploads.TrimStart('/'));
+                            if (System.IO.File.Exists(oldFilePath))
+                            {
+                                try
+                                {
+                                    System.IO.File.Delete(oldFilePath);
+                                }
+                                catch
+                                {
+                                    // Ignore if file can't be deleted
+                                }
+                            }
+                        }
+
+                        // Generate unique filename
+                        var uniqueFileName = $"proof_{TeamId}_meeting{MeetingNumber}_{DateTime.Now:yyyyMMddHHmmss}{extension}";
+                        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                        // Save file
+                        using (var fileStream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await ProofFile.CopyToAsync(fileStream);
+                        }
+
+                        proofFilePath = $"/uploads/proofs/{uniqueFileName}";
+                    }
+                    catch (Exception fileEx)
+                    {
+                        TempData["ErrorMessage"] = $"? Failed to upload proof file: {fileEx.Message}";
+                        return RedirectToAction("StatusUpdate");
+                    }
+                }
+
+                // Update meeting details
+                meeting.MeetingDate = MeetingDate.Value;
+                meeting.Notes = Notes;
+                meeting.CompletionPercentage = CompletionPercentage.Value;
+                meeting.ProofUploads = proofFilePath;
+                meeting.LastUpdated = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
+                TempData["SuccessMessage"] = $"? Meeting #{MeetingNumber} updated successfully! Completion: {CompletionPercentage}%";
+                return RedirectToAction("StatusUpdate");
+            }
+            catch (DbUpdateException dbEx)
+            {
+                TempData["ErrorMessage"] = $"? Database error while updating meeting: {dbEx.InnerException?.Message ?? dbEx.Message}";
+                return RedirectToAction("StatusUpdate");
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = $"? An unexpected error occurred: {ex.Message}. Please try again or contact support.";
+                return RedirectToAction("StatusUpdate");
+            }
         }
     }
 }

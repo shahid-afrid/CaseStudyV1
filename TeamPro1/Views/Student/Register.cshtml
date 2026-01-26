@@ -721,6 +721,12 @@
                         return false;
                     }
                     
+                    // Ensure registration number is uppercase before submission
+                    const regdNumInput = document.getElementById('regdnum');
+                    if (regdNumInput) {
+                        regdNumInput.value = regdNumInput.value.toUpperCase();
+                    }
+                    
                     // Show loading state
                     isSubmitting = true;
                     submitBtn.disabled = true;

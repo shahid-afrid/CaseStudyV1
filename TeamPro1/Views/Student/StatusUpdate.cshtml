@@ -1,0 +1,1614 @@
+@{
+    ViewData["Title"] = "Project Status";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Project Status - TeamPro1</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:700,600,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        :root {
+            --royal-blue: #274060;
+            --warm-gold: #FFC857;
+            --cream: #F9FAF2;
+            --slate: #CED3DC;
+            --card-shadow: rgba(39,64,96,0.13);
+            --success-green: #28a745;
+            --warning-orange: #ff9800;
+            --error-red: #dc3545;
+            --info-blue: #17a2b8;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: linear-gradient(rgba(249, 250, 242, 0.15), rgba(255, 200, 87, 0.10)),
+            url('@Url.Content("~/images/RGMCET-BACKGROUND.jpg")') center center/cover no-repeat fixed;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 0;
+            display: block;
+            background: linear-gradient(135deg, var(--cream) 60%, var(--warm-gold) 100%);
+            opacity: 0.20;
+            pointer-events: none;
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: rgba(249,250,242,0.95);
+            box-shadow: 0 8px 32px var(--card-shadow);
+            border-radius: 20px;
+            padding: 30px 40px;
+            backdrop-filter: blur(12px);
+            margin-bottom: 30px;
+            border: 2px solid var(--slate);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header h1 {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: var(--royal-blue);
+            margin: 0;
+            letter-spacing: 1px;
+        }
+
+        .home-btn {
+            background: linear-gradient(135deg, var(--royal-blue), #1a2f47);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 64, 96, 0.3);
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .home-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 64, 96, 0.4);
+            color: white;
+        }
+
+        /* Alert Messages */
+        .alert-message {
+            padding: 18px 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-weight: 600;
+            font-size: 1em;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            animation: slideIn 0.4s ease;
+        }
+
+        .alert-message i {
+            font-size: 1.5em;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            color: #155724;
+            border: 2px solid #28a745;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border: 2px solid #dc3545;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd, #ffe8a1);
+            color: #856404;
+            border: 2px solid #ffc107;
+        }
+
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            color: #0c5460;
+            border: 2px solid #17a2b8;
+        }
+
+        @@keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .status-card {
+            background: rgba(249,250,242,0.95);
+            box-shadow: 0 8px 32px var(--card-shadow);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--slate);
+            margin-bottom: 30px;
+        }
+
+        .no-team-message {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-team-message i {
+            font-size: 80px;
+            color: var(--slate);
+            margin-bottom: 20px;
+        }
+
+        .no-team-message h3 {
+            color: var(--royal-blue);
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        .no-team-message p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--royal-blue), #1a2f47);
+            color: white;
+            padding: 14px 35px;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(39, 64, 96, 0.3);
+            border: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 64, 96, 0.4);
+            color: white;
+        }
+
+        /* Project Status Table */
+        .section-title {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--royal-blue);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid var(--warm-gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--warm-gold);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .info-item {
+            background: linear-gradient(135deg, rgba(255, 200, 87, 0.1), rgba(249, 250, 242, 0.3));
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid var(--slate);
+            transition: all 0.3s ease;
+        }
+
+        .info-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px var(--card-shadow);
+            border-color: var(--warm-gold);
+        }
+
+        .info-label {
+            font-size: 0.85em;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            color: var(--royal-blue);
+            font-weight: 700;
+        }
+
+        .team-members-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .member-item {
+            font-size: 0.95em;
+            color: var(--royal-blue);
+            font-weight: 600;
+            line-height: 1.6;
+        }
+
+        /* Info Rows for Problem Statement and Mentor */
+        .info-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--slate);
+        }
+
+        .info-row:last-of-type {
+            border-bottom: none;
+            margin-bottom: 20px;
+        }
+
+        .info-row-label {
+            font-weight: 700;
+            color: var(--royal-blue);
+            min-width: 180px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-row-label i {
+            color: var(--warm-gold);
+        }
+
+        .info-row-value {
+            flex: 1;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Meeting Number Badge - Simpler */
+        .meeting-number-badge {
+            background: linear-gradient(135deg, var(--warm-gold), #ffb84d);
+            color: var(--royal-blue);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.95em;
+            display: inline-block;
+            box-shadow: 0 4px 10px rgba(255, 200, 87, 0.3);
+        }
+
+        /* Teammate Info in Table - Smaller */
+        .teammate-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .teammate-info:last-child {
+            margin-bottom: 0;
+        }
+
+        .teammate-avatar-sm {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--royal-blue), #1a2f47);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9em;
+            flex-shrink: 0;
+        }
+
+        .teammate-details-sm {
+            flex: 1;
+        }
+
+        .teammate-name-sm {
+            font-weight: 600;
+            color: var(--royal-blue);
+            font-size: 0.85em;
+        }
+
+        .teammate-regd-sm {
+            font-size: 0.75em;
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Progress Bar - Smaller */
+        .progress-container-sm {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-bar-bg-sm {
+            flex: 1;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill-sm {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-green), #66bb6a);
+            border-radius: 10px;
+            transition: width 0.6s ease;
+        }
+
+        .progress-text-sm {
+            font-size: 0.9em;
+            color: var(--royal-blue);
+            font-weight: 700;
+            min-width: 40px;
+        }
+
+        /* Problem Text */
+        .problem-text {
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        /* Review Box - Smaller */
+        .review-box-sm {
+            background: #f8f9fa;
+            border-left: 3px solid var(--info-blue);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            line-height: 1.5;
+            color: #555;
+        }
+
+        .review-box-sm.empty {
+            color: #999;
+            font-style: italic;
+            border-left-color: var(--slate);
+        }
+
+        /* Proof Link */
+        .proof-link {
+            color: var(--info-blue);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9em;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .proof-link:hover {
+            color: var(--royal-blue);
+            text-decoration: underline;
+        }
+
+        /* No Meetings Inline */
+        .no-meetings-inline {
+            text-align: center;
+        }
+
+        .no-meetings-inline i {
+            font-size: 50px;
+            color: var(--slate);
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .no-meetings-inline p {
+            color: #666;
+            font-size: 1em;
+            margin: 0;
+        }
+
+        /* Add Meeting Section */
+        .add-meeting-section {
+            margin-top: 25px;
+            text-align: center;
+            padding: 20px;
+            border-top: 2px solid var(--slate);
+        }
+
+        .btn-add-meeting {
+            background: linear-gradient(135deg, var(--success-green), #66bb6a);
+            color: white;
+            padding: 14px 35px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1.05em;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-add-meeting:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-edit-meeting {
+            background: linear-gradient(135deg, var(--info-blue), #20c1da);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(23, 162, 184, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-edit-meeting:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(23, 162, 184, 0.4);
+        }
+
+        .btn-edit-table {
+            background: linear-gradient(135deg, var(--warm-gold), #ffb84d);
+            color: var(--royal-blue);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(255, 200, 87, 0.3);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+        }
+
+        .btn-edit-table:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 12px rgba(255, 200, 87, 0.5);
+            background: linear-gradient(135deg, #ffb84d, var(--warm-gold));
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--cream);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @@keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--royal-blue), #1a2f47);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        #addMeetingForm {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 700;
+            color: var(--royal-blue);
+            margin-bottom: 8px;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group label i {
+            color: var(--warm-gold);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--slate);
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: 'Montserrat', Arial, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--warm-gold);
+            box-shadow: 0 0 0 3px rgba(255, 200, 87, 0.2);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-text {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            padding-top: 20px;
+            border-top: 2px solid var(--slate);
+        }
+
+        .btn-secondary {
+            background: var(--slate);
+            color: #333;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #b0b7c0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--royal-blue), #1a2f47);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 64, 96, 0.4);
+        }
+
+        /* Mentor Name Badge */
+        .mentor-name-badge {
+            background: linear-gradient(135deg, var(--warm-gold), #ffb84d);
+            color: var(--royal-blue);
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.95em;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 10px rgba(255, 200, 87, 0.3);
+        }
+
+        /* Meetings List Section */
+        .meetings-list-section {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 2px solid var(--slate);
+        }
+
+        .meetings-title {
+            color: var(--royal-blue);
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .meetings-title i {
+            color: var(--warm-gold);
+        }
+
+        .meeting-card {
+            background: rgba(255, 255, 255, 0.8);
+            border: 2px solid var(--slate);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .meeting-card:hover {
+            border-color: var(--warm-gold);
+            box-shadow: 0 6px 20px rgba(39, 64, 96, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .meeting-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--slate);
+        }
+
+        .meeting-card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .meeting-info-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .meeting-info-row strong {
+            color: var(--royal-blue);
+            min-width: 100px;
+        }
+
+        .meeting-info-row span {
+            color: #333;
+            flex: 1;
+        }
+
+        .progress-inline {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .progress-bar-inline {
+            height: 20px;
+            background: linear-gradient(90deg, var(--success-green), #66bb6a);
+            border-radius: 10px;
+            transition: width 0.6s ease;
+        }
+
+        .progress-value {
+            font-weight: 700;
+            color: var(--royal-blue);
+            min-width: 50px;
+        }
+
+        .meeting-date {
+            font-weight: 600;
+            color: var(--royal-blue);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .meeting-date i {
+            color: var(--warm-gold);
+        }
+
+        .meeting-date-sm {
+            font-size: 0.9em;
+            color: var(--royal-blue);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .meeting-date-sm i {
+            color: var(--warm-gold);
+        }
+
+        .no-meetings-placeholder {
+            padding: 20px;
+        }
+
+        /* No Meetings Message */
+        .no-meetings-message {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .no-meetings-message i {
+            font-size: 70px;
+            color: var(--slate);
+            margin-bottom: 20px;
+        }
+
+        .no-meetings-message h4 {
+            color: var(--royal-blue);
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .no-meetings-message p {
+            color: #666;
+            font-size: 1.05em;
+        }
+
+        /* Table Styling */
+        .status-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        .status-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .status-table thead {
+            background: linear-gradient(135deg, var(--royal-blue), #1a2f47);
+            color: white;
+        }
+
+        .status-table th {
+            padding: 18px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 3px solid var(--warm-gold);
+        }
+
+        .status-table tbody tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid var(--slate);
+        }
+
+        .status-table tbody tr:hover {
+            background: rgba(255, 200, 87, 0.1);
+            transform: scale(1.01);
+        }
+
+        .status-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .status-table td {
+            padding: 20px;
+            color: #333;
+            vertical-align: middle;
+        }
+
+        .progress-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-green), #66bb6a);
+            border-radius: 15px;
+            transition: width 0.6s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+
+        .progress-text {
+            margin-top: 8px;
+            font-size: 0.95em;
+            color: var(--royal-blue);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-not-started {
+            background: linear-gradient(135deg, #e0e0e0, #bdbdbd);
+            color: #555;
+        }
+
+        .status-in-progress {
+            background: linear-gradient(135deg, var(--info-blue), #20c1da);
+            color: white;
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, var(--success-green), #66bb6a);
+            color: white;
+        }
+
+        .review-box {
+            background: #f8f9fa;
+            border-left: 4px solid var(--info-blue);
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #555;
+        }
+
+        .review-box.empty {
+            color: #999;
+            font-style: italic;
+            border-left-color: var(--slate);
+        }
+
+        .no-data {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+
+        @@media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .page-header h1 {
+                font-size: 1.6em;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-row {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .info-row-label {
+                min-width: auto;
+            }
+
+            .status-table th,
+            .status-table td {
+                padding: 12px 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        /* Footer Styling */
+        .app-footer {
+            background: rgba(249,250,242,0.95);
+            backdrop-filter: blur(12px);
+            border-top: 3px solid var(--warm-gold);
+            padding: 30px 20px;
+            margin-top: 50px;
+            box-shadow: 0 -4px 20px var(--card-shadow);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .footer-line {
+            margin: 8px 0;
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .footer-line.guidance {
+            font-weight: 600;
+            color: var(--royal-blue);
+        }
+
+        .footer-highlight,
+        .footer-name {
+            color: var(--warm-gold);
+            font-weight: 700;
+        }
+
+        .footer-line.copyright {
+            margin-top: 15px;
+            font-size: 0.85em;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-chart-line"></i> Project Status</h1>
+            <a asp-controller="Student" asp-action="MainDashboard" class="home-btn">
+                <i class="fas fa-home"></i> Home
+            </a>
+        </div>
+
+        <!-- Success/Error Messages -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert-message alert-success">
+                <i class="fas fa-check-circle"></i>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert-message alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+        }
+        @if (TempData["WarningMessage"] != null)
+        {
+            <div class="alert-message alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>@TempData["WarningMessage"]</span>
+            </div>
+        }
+        @if (TempData["InfoMessage"] != null)
+        {
+            <div class="alert-message alert-info">
+                <i class="fas fa-info-circle"></i>
+                <span>@TempData["InfoMessage"]</span>
+            </div>
+        }
+
+        @if (!ViewBag.HasTeam)
+        {
+            <!-- No Team Message -->
+            <div class="status-card">
+                <div class="no-team-message">
+                    <i class="fas fa-users-slash"></i>
+                    <h3>No Team Found</h3>
+                    <p>@ViewBag.Message</p>
+                    <a asp-controller="Student" asp-action="PoolOfStudents" class="btn-primary">
+                        <i class="fas fa-user-plus"></i> View Pool of Students
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            var team = ViewBag.Team as TeamPro1.Models.Team;
+            var progress = ViewBag.ProjectProgress as TeamPro1.Models.ProjectProgress;
+            var meetings = ViewBag.TeamMeetings as List<TeamPro1.Models.TeamMeeting> ?? new List<TeamPro1.Models.TeamMeeting>();
+            var student1 = team.Student1;
+            var student2 = team.Student2;
+            var mentor = progress?.AssignedFaculty;
+
+            <!-- Project Information Cards -->
+            <div class="status-card">
+                <div class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Team Information
+                </div>
+
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-hashtag"></i> Team Number
+                        </div>
+                        <div class="info-value">Team @team.TeamNumber</div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-users"></i> Team Members
+                        </div>
+                        <div class="info-value team-members-list">
+                            <div class="member-item">@student1.RegdNumber - @student1.FullName</div>
+                            <div class="member-item">@student2.RegdNumber - @student2.FullName</div>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-user-tie"></i> Mentor
+                        </div>
+                        <div class="info-value">
+                            @if (mentor != null)
+                            {
+                                @mentor.FullName
+                            }
+                            else
+                            {
+                                <span style="color: #999; font-size: 0.9em;">Not Assigned Yet</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-calendar-alt"></i> Formed On
+                        </div>
+                        <div class="info-value">@team.CreatedAt.ToString("MMM dd, yyyy")</div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-label">
+                            <i class="fas fa-tasks"></i> Current Status
+                        </div>
+                        <div class="info-value">
+                            @if (progress != null)
+                            {
+                                @if (progress.Status == "Not Started")
+                                {
+                                    <span class="status-badge status-not-started">@progress.Status</span>
+                                }
+                                else if (progress.Status == "In Progress")
+                                {
+                                    <span class="status-badge status-in-progress">@progress.Status</span>
+                                }
+                                else if (progress.Status == "Completed")
+                                {
+                                    <span class="status-badge status-completed">@progress.Status</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-not-started">@progress.Status</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="status-badge status-not-started">Pending</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Progress Details - Meeting Table -->
+            <div class="status-card">
+                <div class="section-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    Project Progress Details
+                </div>
+
+                @{
+                    var canAddMeeting = !string.IsNullOrEmpty(progress?.ProblemStatement) && mentor != null;
+                }
+
+                <div class="status-table-container">
+                    <table class="status-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;"><i class="fas fa-hashtag"></i> Meeting</th>
+                                <th style="width: 150px;"><i class="fas fa-calendar"></i> Date</th>
+                                <th style="width: 150px;"><i class="fas fa-percentage"></i> Completion</th>
+                                <th style="width: 280px;"><i class="fas fa-file-alt"></i> Notes / Problem Statement</th>
+                                <th style="width: 120px;"><i class="fas fa-upload"></i> Proof</th>
+                                <th style="width: 250px;"><i class="fas fa-comments"></i> Faculty Review</th>
+                                <th style="width: 80px; text-align: center;"><i class="fas fa-edit"></i> Edit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (meetings.Count > 0)
+                            {
+                                @foreach (var meeting in meetings)
+                                {
+                                    var canEdit = meeting.MeetingNumber == 1 && canAddMeeting;
+                                    <tr>
+                                        <!-- Meeting Number -->
+                                        <td>
+                                            <div class="meeting-number-badge">
+                                                Meeting @meeting.MeetingNumber
+                                            </div>
+                                        </td>
+
+                                        <!-- Date -->
+                                        <td>
+                                            <div class="meeting-date-sm">
+                                                <i class="fas fa-calendar-day"></i>
+                                                @meeting.MeetingDate.ToString("MMM dd, yyyy")
+                                            </div>
+                                        </td>
+
+                                        <!-- Completion -->
+                                        <td>
+                                            <div class="progress-container-sm">
+                                                <div class="progress-bar-bg-sm">
+                                                    <div class="progress-bar-fill-sm" style="width: @meeting.CompletionPercentage%"></div>
+                                                </div>
+                                                <div class="progress-text-sm">@meeting.CompletionPercentage%</div>
+                                            </div>
+                                        </td>
+
+                                        <!-- Notes -->
+                                        <td>
+                                            <div class="problem-text">
+                                                @(string.IsNullOrEmpty(meeting.Notes) ? "No notes" : meeting.Notes)
+                                            </div>
+                                        </td>
+
+                                        <!-- Proof -->
+                                        <td style="text-align: center;">
+                                            @if (!string.IsNullOrEmpty(meeting.ProofUploads))
+                                            {
+                                                <a href="@meeting.ProofUploads" target="_blank" class="proof-link">
+                                                    <i class="fas fa-file-image"></i> View
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="no-data">No proof</span>
+                                            }
+                                        </td>
+
+                                        <!-- Faculty Review -->
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(meeting.FacultyReview))
+                                            {
+                                                <div class="review-box-sm">@meeting.FacultyReview</div>
+                                            }
+                                            else
+                                            {
+                                                <div class="review-box-sm empty">
+                                                    <i class="fas fa-comment-slash"></i> No review
+                                                </div>
+                                            }
+                                        </td>
+
+                                        <!-- Edit -->
+                                        <td style="text-align: center;">
+                                            @if (canEdit)
+                                            {
+                                                <button type="button" class="btn-edit-table" onclick="showEditMeetingModal(@meeting.Id, @meeting.MeetingNumber, '@meeting.MeetingDate.ToString("yyyy-MM-dd")', '@(meeting.Notes?.Replace("'", "\\'").Replace("\n", "\\n").Replace("\r", ""))', @meeting.CompletionPercentage)">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <span class="no-data">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <!-- No meetings yet - show placeholder row -->
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 40px;">
+                                        @if (!canAddMeeting)
+                                        {
+                                            <div class="no-meetings-placeholder">
+                                                <i class="fas fa-lock" style="font-size: 40px; color: var(--slate); margin-bottom: 15px;"></i>
+                                                <h4 style="color: var(--royal-blue); margin-bottom: 10px;">Waiting for Assignment</h4>
+                                                <p style="color: #666;">Problem statement and mentor must be assigned by faculty before you can add meetings.</p>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="no-meetings-placeholder">
+                                                <i class="fas fa-calendar-plus" style="font-size: 40px; color: var(--warm-gold); margin-bottom: 15px;"></i>
+                                                <h4 style="color: var(--royal-blue); margin-bottom: 10px;">No Meetings Yet</h4>
+                                                <p style="color: #666;">Click "Add Meeting" below to record your first team meeting.</p>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Add Meeting Button -->
+                <div class="add-meeting-section">
+                    @if (canAddMeeting)
+                    {
+                        <button type="button" class="btn-add-meeting" onclick="showAddMeetingModal()">
+                            <i class="fas fa-plus-circle"></i> Add Meeting
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="button" class="btn-add-meeting" disabled style="opacity: 0.5; cursor: not-allowed;" title="Problem statement and mentor must be assigned first">
+                            <i class="fas fa-lock"></i> Add Meeting (Locked)
+                        </button>
+                        <p style="text-align: center; color: #666; margin-top: 10px; font-size: 0.9em;">
+                            <i class="fas fa-info-circle"></i> Waiting for faculty to assign problem statement and mentor
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <!-- Add Meeting Modal -->
+            <div id="addMeetingModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-plus-circle"></i> Add New Meeting</h3>
+                        <button type="button" class="modal-close" onclick="hideAddMeetingModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="addMeetingForm" method="post" action="@Url.Action("AddMeeting", "Student")" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="TeamId" value="@team.Id" />
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-hashtag"></i> Meeting Number</label>
+                            <input type="number" name="MeetingNumber" class="form-control" min="1" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Meeting Date</label>
+                            <input type="date" name="MeetingDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-file-alt"></i> Problem Statement / Notes</label>
+                            <textarea name="Notes" class="form-control" rows="3" placeholder="Enter meeting agenda or problem statement"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-percentage"></i> Project Completion (%)</label>
+                            <input type="number" name="CompletionPercentage" class="form-control" min="0" max="100" value="0" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-upload"></i> Upload Proof (JPG only)</label>
+                            <input type="file" name="ProofFile" class="form-control" accept=".jpg,.jpeg" />
+                            <small class="form-text">Only JPG/JPEG files are accepted</small>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary" onclick="hideAddMeetingModal()">Cancel</button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Add Meeting
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Edit Meeting Modal -->
+            <div id="editMeetingModal" class="modal-overlay" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-edit"></i> Edit Meeting</h3>
+                        <button type="button" class="modal-close" onclick="hideEditMeetingModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form id="editMeetingForm" method="post" action="@Url.Action("UpdateMeeting", "Student")" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="editMeetingId" name="MeetingId" />
+                        <input type="hidden" name="TeamId" value="@team.Id" />
+                        
+                        <div class="form-group">
+                            <label><i class="fas fa-hashtag"></i> Meeting Number</label>
+                            <input type="number" id="editMeetingNumber" name="MeetingNumber" class="form-control" readonly />
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-calendar-alt"></i> Meeting Date</label>
+                            <input type="date" id="editMeetingDate" name="MeetingDate" class="form-control" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-file-alt"></i> Problem Statement / Notes</label>
+                            <textarea id="editMeetingNotes" name="Notes" class="form-control" rows="3" placeholder="Enter meeting agenda or problem statement"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-percentage"></i> Project Completion (%)</label>
+                            <input type="number" id="editCompletionPercentage" name="CompletionPercentage" class="form-control" min="0" max="100" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-upload"></i> Upload New Proof (JPG only)</label>
+                            <input type="file" name="ProofFile" class="form-control" accept=".jpg,.jpeg" />
+                            <small class="form-text">Leave empty to keep existing proof. Only JPG/JPEG files are accepted</small>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary" onclick="hideEditMeetingModal()">Cancel</button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Update Meeting
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <script>
+                function showAddMeetingModal() {
+                    // Check if button is disabled
+                    var btn = event.target.closest('button');
+                    if (btn && btn.disabled) {
+                        alert('?? Cannot add meeting.\n\nProblem statement and mentor must be assigned by faculty first.');
+                        return false;
+                    }
+
+                    // Reset form
+                    document.getElementById('addMeetingForm').reset();
+                    // Remove readonly from meeting number if it was set
+                    var meetingNumberInput = document.querySelector('#addMeetingForm input[name="MeetingNumber"]');
+                    if (meetingNumberInput) {
+                        meetingNumberInput.readOnly = false;
+                    }
+                    document.getElementById('addMeetingModal').style.display = 'flex';
+                }
+
+                function hideAddMeetingModal() {
+                    document.getElementById('addMeetingModal').style.display = 'none';
+                }
+
+                function showAddFirstMeetingModal() {
+                    // Reset form first
+                    document.getElementById('addMeetingForm').reset();
+                    // Pre-fill meeting number as 1
+                    var meetingNumberInput = document.querySelector('#addMeetingForm input[name="MeetingNumber"]');
+                    if (meetingNumberInput) {
+                        meetingNumberInput.value = 1;
+                        meetingNumberInput.readOnly = true;
+                    }
+                    document.getElementById('addMeetingModal').style.display = 'flex';
+                }
+
+                function showEditMeetingModal(meetingId, meetingNumber, meetingDate, notes, completionPercentage) {
+                    document.getElementById('editMeetingId').value = meetingId;
+                    document.getElementById('editMeetingNumber').value = meetingNumber;
+                    document.getElementById('editMeetingDate').value = meetingDate;
+                    document.getElementById('editMeetingNotes').value = notes || '';
+                    document.getElementById('editCompletionPercentage').value = completionPercentage;
+                    document.getElementById('editMeetingModal').style.display = 'flex';
+                }
+
+                function hideEditMeetingModal() {
+                    document.getElementById('editMeetingModal').style.display = 'none';
+                }
+
+                // Form validation
+                document.getElementById('addMeetingForm')?.addEventListener('submit', function(e) {
+                    var meetingNumber = this.querySelector('input[name="MeetingNumber"]').value;
+                    var meetingDate = this.querySelector('input[name="MeetingDate"]').value;
+                    var completion = this.querySelector('input[name="CompletionPercentage"]').value;
+
+                    if (!meetingNumber || meetingNumber < 1) {
+                        alert('? Please enter a valid meeting number (1 or greater).');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (!meetingDate) {
+                        alert('?? Please select a meeting date.');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (completion === '' || completion < 0 || completion > 100) {
+                        alert('? Completion percentage must be between 0 and 100.');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    // Check file if selected
+                    var fileInput = this.querySelector('input[name="ProofFile"]');
+                    if (fileInput && fileInput.files.length > 0) {
+                        var file = fileInput.files[0];
+                        var fileSize = file.size / 1024 / 1024; // in MB
+                        var fileExt = file.name.split('.').pop().toLowerCase();
+
+                        if (fileSize > 5) {
+                            alert('? Proof file size must be less than 5MB.');
+                            e.preventDefault();
+                            return false;
+                        }
+
+                        if (fileExt !== 'jpg' && fileExt !== 'jpeg') {
+                            alert('? Only JPG/JPEG files are allowed for proof upload.');
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+
+                // Edit form validation
+                document.getElementById('editMeetingForm')?.addEventListener('submit', function(e) {
+                    var meetingDate = this.querySelector('input[name="MeetingDate"]').value;
+                    var completion = this.querySelector('input[name="CompletionPercentage"]').value;
+
+                    if (!meetingDate) {
+                        alert('?? Please select a meeting date.');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (completion === '' || completion < 0 || completion > 100) {
+                        alert('? Completion percentage must be between 0 and 100.');
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    // Check file if selected
+                    var fileInput = this.querySelector('input[name="ProofFile"]');
+                    if (fileInput && fileInput.files.length > 0) {
+                        var file = fileInput.files[0];
+                        var fileSize = file.size / 1024 / 1024; // in MB
+                        var fileExt = file.name.split('.').pop().toLowerCase();
+
+                        if (fileSize > 5) {
+                            alert('? Proof file size must be less than 5MB.');
+                            e.preventDefault();
+                            return false;
+                        }
+
+                        if (fileExt !== 'jpg' && fileExt !== 'jpeg') {
+                            alert('? Only JPG/JPEG files are allowed for proof upload.');
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+
+                // Close modal when clicking outside
+                document.getElementById('addMeetingModal')?.addEventListener('click', function(e) {
+                    if (e.target.id === 'addMeetingModal') {
+                        hideAddMeetingModal();
+                    }
+                });
+
+                document.getElementById('editMeetingModal')?.addEventListener('click', function(e) {
+                    if (e.target.id === 'editMeetingModal') {
+                        hideEditMeetingModal();
+                    }
+                });
+            </script>
+        }
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <div class="footer-line guidance">
+                Developed under the guidance of <span class="footer-highlight">Dr. P. Penchala Prasad</span>, Associate Professor, CSE(DS), RGMCET
+            </div>
+            <div class="footer-line team">
+                With team <span class="footer-name">Mr. S. Md. Shahid Afrid</span> (23091A32D4) & <span class="footer-name">Ms. G. Veena</span> (23091A32H9)
+            </div>
+            <div class="footer-line copyright">
+                &copy; All Rights Reserved @DateTime.Now.Year
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
